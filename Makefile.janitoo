@@ -1,0 +1,6 @@
+# Makefile for local
+#
+SUBMODULES = janitoo_nosetests janitoo janitoo_factory janitoo_factory_exts \
+ janitoo_raspberry janitoo_raspberry_camera \
+ janitoo_raspberry_i2c janitoo_raspberry_i2c_pĉa9865 \
+ janitoo_raspberry_pancam
