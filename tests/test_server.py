@@ -33,7 +33,7 @@ from janitoo.utils import HADD_SEP, HADD
 from janitoo.thread import JNTBusThread
 from janitoo_raspberry.server import PiServer
 
-class TestTutorialServer(JNTTServer, JNTTServerCommon):
+class TestPancamServer(JNTTServer, JNTTServerCommon):
     """Test the tutorial server
     """
     server_class = PiServer
@@ -65,11 +65,21 @@ class TestTutorialServer(JNTTServer, JNTTServerCommon):
         bus.sleep()
         time.sleep(2)
 
-    def test_101_server_pan(self):
+    def test_101_server_pan_position(self):
         self.onlyRasperryTest()
         self.start()
-        time.sleep(20)
-        thread = self.server.find_thread(self.server_section)
+        timeout = 120
+        i = 0
+        thread = None
+        while i< timeout and (thread is None or not thread.nodeman.is_started):
+            thread = self.server.find_thread(self.server_section)
+            time.sleep(1)
+            i += 1
+            if thread is not None:
+                print thread.nodeman.state
+            else:
+                print "No thread"
+        print thread.bus.nodeman.nodes
         self.assertNotEqual(thread, None)
         self.assertIsInstance(thread, JNTBusThread)
         bus = thread.bus
@@ -105,3 +115,46 @@ class TestTutorialServer(JNTTServer, JNTTServerCommon):
         changes[0].data = '0|0'
         time.sleep(2)
         self.assertEqual('0|0', changes[0].data)
+
+    def test_102_server_pan_travel(self):
+        self.onlyRasperryTest()
+        self.start()
+        timeout = 120
+        i = 0
+        thread = None
+        while i< timeout and (thread is None or not thread.nodeman.is_started):
+            thread = self.server.find_thread(self.server_section)
+            time.sleep(1)
+            i += 1
+            if thread is not None:
+                print thread.nodeman.state
+            else:
+                print "No thread"
+        print thread.bus.nodeman.nodes
+        self.assertNotEqual(thread, None)
+        self.assertIsInstance(thread, JNTBusThread)
+        bus = thread.bus
+        self.assertNotEqual(bus, None)
+        self.waitHeartbeatNodes(hadds=self.hadds)
+        self.assertFsmBoot()
+        bus.wakeup()
+        time.sleep(2)
+        self.assertTrue(thread.nodeman.is_started)
+        self.assertNotEqual(None, bus.nodeman.find_node('pan'))
+        self.assertNotEqual(None, bus.find_components('pancam.pancam'))
+        pancams = bus.find_components('pancam.pancam')
+        self.assertEqual(1, len(pancams))
+        pancam = pancams[0]
+        self.assertNotEqual(None, pancam)
+        positions = bus.find_values('pancam.pancam','position')
+        self.assertEqual(1, len(positions))
+        positions[0].data = '0|0'
+        time.sleep(2)
+        travels = bus.find_values('pancam.pancam','travel')
+        self.assertEqual(1, len(travels))
+        travels[0].data = '20|20'
+        time.sleep(30)
+        self.assertEqual('20|20', positions[0].data)
+        positions[0].data = '0|0'
+        time.sleep(2)
+        self.assertEqual('0|0', positions[0].data)

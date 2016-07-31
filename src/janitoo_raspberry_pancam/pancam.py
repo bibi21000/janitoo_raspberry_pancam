@@ -352,6 +352,32 @@ class PancamComponent(JNTComponent):
         poll_value = self.values[uuid].create_poll_value(default=300)
         self.values[poll_value.uuid] = poll_value
 
+        self.travel_timer = None
+        self.travel_timer_lock = threading.Lock()
+        uuid="travel_speed"
+        self.values[uuid] = self.value_factory['config_string'](options=self.options, uuid=uuid,
+            node_uuid=self.uuid,
+            help="The travel speed in degrees|time(ms)",
+            label='travel_speed',
+            default='1|100',
+        )
+        uuid="travel"
+        self.values[uuid] = self.value_factory['action_string'](options=self.options, uuid=uuid,
+            node_uuid=self.uuid,
+            set_data_cb=self.set_travel,
+            help="Travel to position : x|y. Send -1|-1 to stop the travel",
+            label='Travel',
+        )
+        poll_value = self.values[uuid].create_poll_value(default=300)
+        self.values[poll_value.uuid] = poll_value
+
+    def stop(self, **kwargs):
+        """Stop the component
+        """
+        self.stop_traveling()
+        self.values['position'].data = self.values['initial'].data
+        JNTComponent.stop(self)
+
     def set_position(self, node_uuid, index, data):
         """Change the position of the pan
         """
@@ -371,3 +397,75 @@ class PancamComponent(JNTComponent):
             self.values['position']._data = data
         except Exception:
             logger.exception('[%s] - Exception when set_position', self.__class__.__name__)
+
+    def set_travel(self, node_uuid=None, index=None, data = None):
+        """
+        """
+        if data is None or data=="-1|-1":
+            self.stop_traveling(node_uuid=node_uuid, index=index, data = data)
+            self.values['travel']._data = "-1|-1"
+        else:
+            self.values['travel']._data = data
+            self.start_traveling(node_uuid=node_uuid, index=index, data = data)
+
+    def start_traveling(self, **kwargs):
+        """
+        """
+        self.travel_timer_lock.acquire()
+        try:
+            if self.travel_timer is not None:
+                self.travel_timer.cancel()
+                self.travel_timer = None
+            self.travel_timer = threading.Timer(0.01, self.timer_travel_change)
+            self.travel_timer.start()
+        finally:
+            self.travel_timer_lock.release()
+
+    def stop_traveling(self, **kwargs):
+        """
+        """
+        #~ print 'locking', self.travel_timer_lock.acquire(False)
+        if self.travel_timer_lock is None:
+            return
+        self.travel_timer_lock.acquire()
+        try:
+            if self.travel_timer is not None:
+                self.travel_timer.cancel()
+                self.travel_timer = None
+        finally:
+            self.travel_timer_lock.release()
+
+    def timer_travel_change(self):
+        """
+        """
+        if self.travel_timer_lock is None:
+            return
+        self.travel_timer_lock.acquire()
+        try:
+            if self.travel_timer is not None:
+                self.travel_timer.cancel()
+                self.travel_timer = None
+            speed_ang,speed_time = self.values['travel_speed']._data.split('|')
+            if self.values['travel']._data is None or self.values['travel']._data=="-1|-1":
+                self.values['travel']._data = "-1|-1"
+                return
+            else:
+                tx,ty = self.values['travel']._data.split('|')
+                px,py = self.values['position']._data.split('|')
+            npx = int(px)
+            if int(tx)>int(px):
+                npx = int(px)+int(speed_ang)
+            elif int(tx)<int(px):
+                npx = int(px)-int(speed_ang)
+            npy = int(py)
+            if int(ty)>int(py):
+                npy = int(py)+int(speed_ang)
+            elif int(ty)<int(py):
+                npy = int(py)-int(speed_ang)
+            if npx != int(px) or npy != int(py):
+                logger.debug('[%s] - timer_travel_change to data %s|%s', self.__class__.__name__, npx, npy)
+                self.values['position'].data = "%s|%s" % (npx, npy)
+                self.travel_timer = threading.Timer(int(speed_time)/1000, self.timer_travel_change)
+                self.travel_timer.start()
+        finally:
+            self.travel_timer_lock.release()
