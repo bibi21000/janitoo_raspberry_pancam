@@ -59,6 +59,11 @@ class TestStreamComponent(JNTTComponent, JNTTComponentCommon):
     """
     component_name = "pancam.stream"
 
+class TestServoComponent(JNTTComponent, JNTTComponentCommon):
+    """Test the component
+    """
+    component_name = "pancam.servo"
+
 class TestPancamComponent(JNTTComponent, JNTTComponentCommon):
     """Test the component
     """

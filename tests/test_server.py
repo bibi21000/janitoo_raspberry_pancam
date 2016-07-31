@@ -40,7 +40,7 @@ class TestTutorialServer(JNTTServer, JNTTServerCommon):
     server_conf = "tests/data/janitoo_raspberry_pancam.conf"
     server_section = "pancam"
 
-    hadds = [HADD%(225,0), HADD%(225,1), HADD%(225,2), HADD%(225,3), HADD%(225,4)]
+    hadds = [HADD%(217,0), HADD%(217,1), HADD%(217,2), HADD%(217,3)]
 
     def test_040_server_start_no_error_in_log(self):
         self.onlyRasperryTest()
@@ -48,7 +48,7 @@ class TestTutorialServer(JNTTServer, JNTTServerCommon):
 
     def test_100_server_start_machine_state(self):
         self.start()
-        time.sleep(10)
+        time.sleep(20)
         thread = self.server.find_thread(self.server_section)
         self.assertNotEqual(thread, None)
         self.assertIsInstance(thread, JNTBusThread)
@@ -62,8 +62,46 @@ class TestTutorialServer(JNTTServer, JNTTServerCommon):
         time.sleep(2)
         bus.report()
         time.sleep(15)
-        bus.ring()
-        time.sleep(15)
-        bus.report()
-        time.sleep(2)
         bus.sleep()
+        time.sleep(2)
+
+    def test_101_server_pan(self):
+        self.onlyRasperryTest()
+        self.start()
+        time.sleep(20)
+        thread = self.server.find_thread(self.server_section)
+        self.assertNotEqual(thread, None)
+        self.assertIsInstance(thread, JNTBusThread)
+        bus = thread.bus
+        self.assertNotEqual(bus, None)
+        self.waitHeartbeatNodes(hadds=self.hadds)
+        self.assertFsmBoot()
+        bus.wakeup()
+        time.sleep(2)
+        self.assertTrue(thread.nodeman.is_started)
+        self.assertNotEqual(None, bus.nodeman.find_node('pan'))
+        self.assertNotEqual(None, bus.find_components('pancam.pancam'))
+        pancams = bus.find_components('pancam.pancam')
+        self.assertEqual(1, len(pancams))
+        pancam = pancams[0]
+        self.assertNotEqual(None, pancam)
+        #~ pancam.set_change(None, 0, '155,1')
+        changes = bus.find_values('pancam.pancam','position')
+        self.assertEqual(1, len(changes))
+        changes[0].data = '0|0'
+        time.sleep(2)
+        changes[0].data = '90|45'
+        time.sleep(2)
+        changes[0].data = '135|90'
+        time.sleep(2)
+        changes[0].data = '180|135'
+        time.sleep(2)
+        changes[0].data = '90|45'
+        time.sleep(2)
+        changes[0].data = '-1|-1'
+        time.sleep(2)
+        changes[0].data = '90|45'
+        time.sleep(2)
+        changes[0].data = '0|0'
+        time.sleep(2)
+        self.assertEqual('0|0', changes[0].data)
