@@ -47,6 +47,7 @@ from janitoo.utils import TOPIC_VALUES_USER, TOPIC_VALUES_CONFIG, TOPIC_VALUES_S
 
 from janitoo_raspberry_pancam.thread_pancam import PancamThread
 import janitoo_raspberry_pancam.pancam
+import janitoo_raspberry_pancam.thread_pancam
 
 ##############################################################
 #Check that we are in sync with the official command classes
@@ -89,6 +90,47 @@ class TestTutorialThread(JNTTThreadRun, JNTTThreadRunCommon):
         time.sleep(5)
         self.thread.bus.sleep()
         time.sleep(5)
+
+    def test_104_pan(self):
+        self.onlyRasperryTest()
+        self.thread.start()
+        try:
+            timeout = 120
+            i = 0
+            while i< timeout and not self.thread.nodeman.is_started:
+                time.sleep(1)
+                i += 1
+                print self.thread.nodeman.state
+            print self.thread.bus.nodeman.nodes
+            time.sleep(5)
+            self.assertTrue(self.thread.nodeman.is_started)
+            self.assertNotEqual(None, self.thread.bus.nodeman.find_node('pan'))
+            self.assertNotEqual(None, self.thread.bus.find_components('pancam.pancam'))
+            pancams = self.thread.bus.find_components('pancam.pancam')
+            self.assertEqual(1, len(pancams))
+            pancam = pancams[0]
+            self.assertNotEqual(None, pancam)
+            #~ pancam.set_change(None, 0, '155,1')
+            changes = self.thread.bus.find_values('pancam.pancam','position')
+            self.assertEqual(1, len(changes))
+            changes[0].data = '0|0'
+            time.sleep(2)
+            changes[0].data = '90|45'
+            time.sleep(2)
+            changes[0].data = '135|90'
+            time.sleep(2)
+            changes[0].data = '180|135'
+            time.sleep(2)
+            changes[0].data = '90|45'
+            time.sleep(2)
+            changes[0].data = '-1|-1'
+            time.sleep(2)
+            changes[0].data = '90|45'
+            time.sleep(2)
+            changes[0].data = '0|0'
+            self.assertEqual('0|0', changes[0].data)
+        finally:
+            self.thread.stop()
 
     #~ def test_104_on_check(self):
         #~ self.wait_for_nodeman()

@@ -116,6 +116,7 @@ setup(
         "janitoo.components": [
             "pancam.stream = janitoo_raspberry_pancam.pancam:make_stream",
             "pancam.pancam = janitoo_raspberry_pancam.pancam:make_pancam",
+            "pancam.servo = janitoo_raspberry_pancam.pancam:make_servo",
         ],
     },
 )
