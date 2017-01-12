@@ -111,7 +111,7 @@ setup(
     ],
     entry_points = {
         "janitoo.threads": [
-            "pancam = janitoo_raspberry_pancam.thread_pancam:make_pancam",
+            "pancam = janitoo_raspberry_pancam.thread_pancam:make_thread",
         ],
         "janitoo.components": [
             "pancam.stream = janitoo_raspberry_pancam.pancam:make_stream",
